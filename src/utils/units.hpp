@@ -30,7 +30,7 @@ class Units {
 
   // Copy constructor must be marked with KOKKOS_FUNCTION
   KOKKOS_FUNCTION
-  Units(const Units &other) = default;
+  Units(const Units &other) {}
 
   // Return physical unit system
   KOKKOS_INLINE_FUNCTION
@@ -109,7 +109,7 @@ class Constants {
   Constants(Units &units);
 
   KOKKOS_FUNCTION
-  Constants(const Constants &other) = default;
+  Constants(const Constants &other) {}
 
   KOKKOS_INLINE_FUNCTION
   Real GetGPhysical() const { return G_; }

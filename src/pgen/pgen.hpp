@@ -18,11 +18,14 @@
 #include <utils/error_checking.hpp>
 
 // Artemis includes
+#include "SI_strat.hpp"
 #include "advection.hpp"
 #include "blast.hpp"
 #include "conduction.hpp"
 #include "constant.hpp"
 #include "disk.hpp"
+#include "dust_coagulation.hpp"
+#include "dust_collision.hpp"
 #include "gaussian_bump.hpp"
 #include "linear_wave.hpp"
 #include "shock.hpp"
@@ -54,10 +57,16 @@ void ProblemGenerator(MeshBlock *pmb, ParameterInput *pin) {
     linear_wave::ProblemGenerator<T>(pmb, pin);
   } else if (name == "shock") {
     shock::ProblemGenerator<T>(pmb, pin);
+  } else if (name == "SI_strat") {
+    SI_strat::ProblemGenerator<T>(pmb, pin);
   } else if (name == "strat") {
     strat::ProblemGenerator<T>(pmb, pin);
   } else if (name == "thermalization") {
     thermalization::ProblemGenerator<T>(pmb, pin);
+  } else if (name == "dust_collision") {
+    dust_collision::ProblemGenerator<T>(pmb, pin);
+  } else if (name == "dust_coagulation") {
+    dust_coagulation::ProblemGenerator<T>(pmb, pin);
   } else {
     PARTHENON_FAIL("Invalid problem name!");
   }

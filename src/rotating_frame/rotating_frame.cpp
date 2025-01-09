@@ -41,6 +41,19 @@ std::shared_ptr<StateDescriptor> Initialize(ParameterInput *pin) {
   params.Add("qshear", qshear);
 
   // turn off vertical gravity in shearingbox
+  // The following lines are for shearingbox in Cartesian geometry
+  if (pin->GetString("artemis", "coordinates") == "cartesian") {
+    const int ShBoxCoord = pin->GetOrAddInteger("rotating_frame", "shboxcoord", 1);
+    const bool StratFlag =
+        pin->GetOrAddBoolean("rotating_frame", "stratified_flag", true);
+    params.Add("ShBoxCoord", ShBoxCoord);
+    params.Add("StratFlag", StratFlag);
+
+    if (pin->GetOrAddBoolean("physics", "dust", false)) {
+      const Real Kai0 = pin->GetOrAddReal("dust", "Kai0", 0.0);
+      params.Add("Kai0", Kai0);
+    }
+  }
 
   return pkg;
 }

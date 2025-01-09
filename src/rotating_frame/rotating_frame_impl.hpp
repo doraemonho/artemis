@@ -41,53 +41,123 @@ TaskStatus ShearingBoxImpl(MeshData<Real> *md, const Real om0, const Real qshear
   const auto kb = md->GetBoundsK(IndexDomain::interior);
 
   const Real omsq = SQR(om0);
-  parthenon::par_for(
-      DEFAULT_LOOP_PATTERN, "ShearingBox", parthenon::DevExecSpace(), 0,
-      md->NumBlocks() - 1, kb.s, kb.e, jb.s, jb.e, ib.s, ib.e,
-      KOKKOS_LAMBDA(const int &b, const int &k, const int &j, const int &i) {
-        // Extract coordinates
-        geometry::Coords<Coordinates::cartesian> coords(vmesh.GetCoordinates(b), k, j, i);
+  auto &rframe_pkg = pm->packages.Get("rotating_frame");
+  const int ShBboxCoord = rframe_pkg->template Param<int>("ShBoxCoord");
+  if (ShBboxCoord == 1) {
+    parthenon::par_for(
+        DEFAULT_LOOP_PATTERN, "ShearingBox", parthenon::DevExecSpace(), 0,
+        md->NumBlocks() - 1, kb.s, kb.e, jb.s, jb.e, ib.s, ib.e,
+        KOKKOS_LAMBDA(const int &b, const int &k, const int &j, const int &i) {
+          // Extract coordinates
+          geometry::Coords<Coordinates::cartesian> coords(vmesh.GetCoordinates(b), k, j,
+                                                          i);
 
-        const Real dx = coords.bnds.x1[1] - coords.bnds.x1[0];
-        const Real dz = coords.bnds.x3[1] - coords.bnds.x3[0];
-        const Real phi_xm1 = -qshear * omsq * coords.bnds.x1[0] * coords.bnds.x1[0];
-        const Real phi_xp1 = -qshear * omsq * coords.bnds.x1[1] * coords.bnds.x1[1];
-        const Real phi_zm1 = 0.5 * omsq * coords.bnds.x3[0] * coords.bnds.x3[0];
-        const Real phi_zp1 = 0.5 * omsq * coords.bnds.x3[1] * coords.bnds.x3[1];
-        const Real dpx = (phi_xp1 - phi_xm1) / dx;
-        const Real dpz = three_d * ((phi_zp1 - phi_zm1) / dz);
+          const Real dx = coords.bnds.x1[1] - coords.bnds.x1[0];
+          const Real dz = coords.bnds.x3[1] - coords.bnds.x3[0];
+          const Real phi_xm1 = -qshear * omsq * coords.bnds.x1[0] * coords.bnds.x1[0];
+          const Real phi_xp1 = -qshear * omsq * coords.bnds.x1[1] * coords.bnds.x1[1];
+          const Real phi_zm1 = 0.5 * omsq * coords.bnds.x3[0] * coords.bnds.x3[0];
+          const Real phi_zp1 = 0.5 * omsq * coords.bnds.x3[1] * coords.bnds.x3[1];
+          const Real dpx = (phi_xp1 - phi_xm1) / dx;
+          const Real dpz = three_d * ((phi_zp1 - phi_zm1) / dz);
 
-        if (do_gas) {
-          for (int n = 0; n < vmesh.GetSize(b, gas::prim::density()); ++n) {
-            const Real &dens = vmesh(b, gas::prim::density(n), k, j, i);
-            const Real &v1 = vmesh(b, gas::prim::velocity(VI(n, 0)), k, j, i);
-            const Real &v2 = vmesh(b, gas::prim::velocity(VI(n, 1)), k, j, i);
-            const Real &v3 = vmesh(b, gas::prim::velocity(VI(n, 2)), k, j, i);
-            const Real rdt = dens * dt;
-            vmesh(b, gas::cons::momentum(VI(n, 0)), k, j, i) -=
-                rdt * (dpx - 2.0 * om0 * v2);
-            vmesh(b, gas::cons::momentum(VI(n, 1)), k, j, i) -= rdt * 2.0 * om0 * v1;
-            vmesh(b, gas::cons::momentum(VI(n, 2)), k, j, i) -= rdt * dpz;
-            vmesh(b, gas::cons::total_energy(n), k, j, i) -=
-                rdt * (v1 * dpx + v3 * dpz); // NOTE(ADM): Change to use the fluxes
+          if (do_gas) {
+            for (int n = 0; n < vmesh.GetSize(b, gas::prim::density()); ++n) {
+              const Real &dens = vmesh(b, gas::prim::density(n), k, j, i);
+              const Real &v1 = vmesh(b, gas::prim::velocity(VI(n, 0)), k, j, i);
+              const Real &v2 = vmesh(b, gas::prim::velocity(VI(n, 1)), k, j, i);
+              const Real &v3 = vmesh(b, gas::prim::velocity(VI(n, 2)), k, j, i);
+              const Real rdt = dens * dt;
+              vmesh(b, gas::cons::momentum(VI(n, 0)), k, j, i) -=
+                  rdt * (dpx - 2.0 * om0 * v2);
+              vmesh(b, gas::cons::momentum(VI(n, 1)), k, j, i) -= rdt * 2.0 * om0 * v1;
+              vmesh(b, gas::cons::momentum(VI(n, 2)), k, j, i) -= rdt * dpz;
+              vmesh(b, gas::cons::total_energy(n), k, j, i) -=
+                  rdt * (v1 * dpx + v3 * dpz); // NOTE(ADM): Change to use the fluxes
+            }
           }
-        }
 
-        if (do_dust) {
-          for (int n = 0; n < vmesh.GetSize(b, dust::prim::density()); ++n) {
-            const Real &dens = vmesh(b, dust::prim::density(n), k, j, i);
-            const Real &v1 = vmesh(b, dust::prim::velocity(VI(n, 0)), k, j, i);
-            const Real &v2 = vmesh(b, dust::prim::velocity(VI(n, 1)), k, j, i);
-            const Real &v3 = vmesh(b, dust::prim::velocity(VI(n, 2)), k, j, i);
+          if (do_dust) {
+            for (int n = 0; n < vmesh.GetSize(b, dust::prim::density()); ++n) {
+              const Real &dens = vmesh(b, dust::prim::density(n), k, j, i);
+              const Real &v1 = vmesh(b, dust::prim::velocity(VI(n, 0)), k, j, i);
+              const Real &v2 = vmesh(b, dust::prim::velocity(VI(n, 1)), k, j, i);
+              const Real &v3 = vmesh(b, dust::prim::velocity(VI(n, 2)), k, j, i);
 
-            const Real rdt = dens * dt;
-            vmesh(b, dust::cons::momentum(VI(n, 0)), k, j, i) -=
-                rdt * (dpx - 2.0 * om0 * v2);
-            vmesh(b, dust::cons::momentum(VI(n, 1)), k, j, i) -= rdt * 2.0 * om0 * v1;
-            vmesh(b, dust::cons::momentum(VI(n, 2)), k, j, i) -= rdt * dpz;
+              const Real rdt = dens * dt;
+              vmesh(b, dust::cons::momentum(VI(n, 0)), k, j, i) -=
+                  rdt * (dpx - 2.0 * om0 * v2);
+              vmesh(b, dust::cons::momentum(VI(n, 1)), k, j, i) -= rdt * 2.0 * om0 * v1;
+              vmesh(b, dust::cons::momentum(VI(n, 2)), k, j, i) -= rdt * dpz;
+            }
           }
-        }
-      });
+        });
+  } else if (ShBboxCoord == 2) {
+    const bool StratFlag = rframe_pkg->template Param<bool>("StratFlag");
+
+    Real Kai0 = 0.0;
+    if (do_dust) {
+      Kai0 = rframe_pkg->template Param<Real>("Kai0");
+    }
+    parthenon::par_for(
+        DEFAULT_LOOP_PATTERN, "ShearingBox", parthenon::DevExecSpace(), 0,
+        md->NumBlocks() - 1, kb.s, kb.e, jb.s, jb.e, ib.s, ib.e,
+        KOKKOS_LAMBDA(const int &b, const int &k, const int &j, const int &i) {
+          // Extract coordinates
+          geometry::Coords<Coordinates::cartesian> coords(vmesh.GetCoordinates(b), k, j,
+                                                          i);
+
+          const Real dx = coords.bnds.x1[1] - coords.bnds.x1[0];
+          const Real dz = coords.bnds.x2[1] - coords.bnds.x2[0];
+          const Real phi_xm1 = -qshear * omsq * coords.bnds.x1[0] * coords.bnds.x1[0];
+          const Real phi_xp1 = -qshear * omsq * coords.bnds.x1[1] * coords.bnds.x1[1];
+          const Real phi_zm1 = 0.5 * omsq * coords.bnds.x2[0] * coords.bnds.x2[0];
+          const Real phi_zp1 = 0.5 * omsq * coords.bnds.x2[1] * coords.bnds.x2[1];
+          const Real dpx = (phi_xp1 - phi_xm1) / dx;
+          const Real dpz = StratFlag * ((phi_zp1 - phi_zm1) / dz);
+
+          if (do_gas) {
+            for (int n = 0; n < vmesh.GetSize(b, gas::prim::density()); ++n) {
+              const Real &dens = vmesh(b, gas::prim::density(n), k, j, i);
+              const Real &v1 = vmesh(b, gas::prim::velocity(VI(n, 0)), k, j, i);
+              const Real &v2 = vmesh(b, gas::prim::velocity(VI(n, 1)), k, j, i);
+              const Real &v3 = vmesh(b, gas::prim::velocity(VI(n, 2)), k, j, i);
+              const Real rdt = dens * dt;
+              vmesh(b, gas::cons::momentum(VI(n, 0)), k, j, i) -=
+                  rdt * (dpx - 2.0 * om0 * v3);
+              vmesh(b, gas::cons::momentum(VI(n, 1)), k, j, i) -= rdt * dpz;
+              vmesh(b, gas::cons::momentum(VI(n, 2)), k, j, i) -= rdt * 2.0 * om0 * v1;
+              vmesh(b, gas::cons::total_energy(n), k, j, i) -=
+                  rdt * (v1 * dpx + v2 * dpz); // NOTE(ADM): Change to use the fluxes
+            }
+          }
+
+          if (do_dust) {
+            if (Kai0 > 0.0) {
+              // add artificial pressure gradient to gas
+              for (int n = 0; n < vmesh.GetSize(b, gas::prim::density()); ++n) {
+                const Real dens_g = vmesh(b, gas::prim::density(n), k, j, i);
+                const Real v1_g = vmesh(b, gas::prim::velocity(VI(n, 0)), k, j, i);
+                const Real press_gra = dens_g * Kai0 * om0 * dt;
+                vmesh(b, gas::cons::momentum(VI(n, 0)), k, j, i) += press_gra;
+                vmesh(b, gas::cons::total_energy(n), k, j, i) += (press_gra * v1_g);
+              }
+            }
+            for (int n = 0; n < vmesh.GetSize(b, dust::prim::density()); ++n) {
+              const Real &dens = vmesh(b, dust::prim::density(n), k, j, i);
+              const Real &v1 = vmesh(b, dust::prim::velocity(VI(n, 0)), k, j, i);
+              const Real &v2 = vmesh(b, dust::prim::velocity(VI(n, 1)), k, j, i);
+              const Real &v3 = vmesh(b, dust::prim::velocity(VI(n, 2)), k, j, i);
+
+              const Real rdt = dens * dt;
+              vmesh(b, dust::cons::momentum(VI(n, 0)), k, j, i) -=
+                  rdt * (dpx - 2.0 * om0 * v3);
+              vmesh(b, dust::cons::momentum(VI(n, 1)), k, j, i) -= rdt * dpz;
+              vmesh(b, dust::cons::momentum(VI(n, 2)), k, j, i) -= rdt * 2.0 * om0 * v1;
+            }
+          }
+        });
+  }
 
   return TaskStatus::complete;
 }
