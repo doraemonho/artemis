@@ -150,8 +150,8 @@ inline void ProblemGenerator(MeshBlock *pmb, ParameterInput *pin) {
 		Real gtemp = Null<Real>();
 
 		cs2 = Cs2Profile(vsip, eos_d, r, R, z);
-		gpres = gdens*cs2/vsip.gamma;
 		gdens = DensityProfile_Gas(vsip, eos_d, r, R, z);
+		gpres = gdens*cs2/vsip.gamma;
 		gtemp = gpres/gdens/(vsip.gamma - 1.0);
 
 		Real lambda0 = 0.0, lambda1 = 0.0;
