@@ -137,7 +137,7 @@ void ProblemModifier(parthenon::ParthenonManager *pman) {
                                                SI_strat::ExtrapInnerX2<G>);
     pman->app_input->RegisterBoundaryCondition(BF::outer_x2, "extrap",
                                                SI_strat::ExtrapOuterX2<G>);
-  } else if (artemis_problem == "InitVSIParams") {
+  } else if (artemis_problem == "VSI") {
     pman->app_input->InitMeshBlockUserData  = VSI::InitVSIParams;
   } else if (artemis_problem == "dust_collision") {
     pman->app_input->PreStepMeshUserWorkInLoop = dust_collision::PreStepUserWorkInLoop;
