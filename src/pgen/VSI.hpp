@@ -89,7 +89,21 @@ inline void InitVSIParams(MeshBlock *pmb, ParameterInput *pin) {
 		}*/
 		params.Add("vsi_params", vsi_params);
   }
-	
+	// print out all the parameters
+	if (parthenon::Globals::my_rank == 0) {
+		auto vsi_params = artemis_pkg->Param<VSI_Params>("vsi_params");
+		std::cout << "VSI Parameters:" << std::endl;
+		std::cout << "gm: " << vsi_params.gm << std::endl;
+		std::cout << "r0: " << vsi_params.r0 << std::endl;
+		std::cout << "rho0: " << vsi_params.rho0 << std::endl;
+		std::cout << "hg0: " << vsi_params.hg0 << std::endl;
+		std::cout << "rexp: " << vsi_params.rexp << std::endl;
+		std::cout << "amp: " << vsi_params.amp << std::endl;
+		std::cout << "gamma: " << vsi_params.gamma << std::endl;
+		std::cout << "dslope: " << vsi_params.dslope << std::endl;
+		std::cout << "pslope: " << vsi_params.pslope << std::endl;
+		
+	}
 }
 
 //----------------------------------------------------------------------------------------
