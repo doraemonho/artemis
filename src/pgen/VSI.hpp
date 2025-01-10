@@ -47,12 +47,12 @@ struct VSIParams {
 	Real gm;              // gravitational constant
 	Real gamma;           // adiabatic index
 	Real dslope, pslope;  // density and pressure slopes
-	Real rho0, r0, hgas0; // reference density, radius, and gas scale height
+	Real rho0, r0, hg0;   // reference density, radius, and gas scale height
 	Real rexp;            // radial exponent for density profile
 	Real amp;             // amplitude of perturbation
 	Real dust_to_gas;     // dust to gas ratio
 
-}
+};
 
 
 //----------------------------------------------------------------------------------------
@@ -73,10 +73,10 @@ inline void InitStratParams(MeshBlock *pmb, ParameterInput *pin) {
 		vsi_params.r0 = pin->GetReal("problem", "r0", 1.0);
 
 		// Get the dust related parameters if dust is enabled
-		const bool do_dust = artemis_pkg->Param<bool>("do_dust");
+		/*const bool do_dust = artemis_pkg->Param<bool>("do_dust");
 		if (do_dust) {
 
-		}
+		}*/
 
   }
 	params.Add("VSI_params", vsi_params);
@@ -126,7 +126,7 @@ inline void ProblemGenerator(MeshBlock *pmb, ParameterInput *pin) {
 
 		geometry::Coords<GEOM> coords(pco, k, j, i);
 		const auto &x_sph = coords.GetCellCenter();
-	  const auto &x_cyl = coords.ConvertCoordsToCyl(x);
+	  const auto &x_cyl = coords.ConvertCoordsToCyl(x_sph);
 
 		auto {r, theta, phi} = x_sph;
 		auto {R, a, z} = x_cyl;
@@ -136,30 +136,30 @@ inline void ProblemGenerator(MeshBlock *pmb, ParameterInput *pin) {
 		Real gvel1 = Null<Real>(), gvel2 = Null<Real>(), gvel3 = Null<Real>();
 		
 		cs2 = Cs2Profile(vsip, eos_d, r, R, z);
-		gpres = gdens*cs2/visp.gamma;
+		gpres = gdens*cs2/vsip.gamma;
 		gdens = DensityProfile_Gas(vsip, eos_d, r, R, z);
 
 		Real lambda0 = 0.0, lambda1 = 0.0;
 		GasVelProfileCyl(vsip, eos_d, 
-									gdens, cs2, 
-									lambda0, lambda1,
-									r, R, z,
-									v1, v2, v3);
+								    	gdens, cs2, 
+								    	lambda0, lambda1,
+								    	r, R, z,
+								    	gvel1, gvel2, gvel3);
 
 		const Real del_vx1 =
-			pars.amp * std::sqrt(cs2) * generator.drand(-0.5, 0.5); // ran(iseed);
+			vsip.amp * std::sqrt(cs2) * generator.drand(-0.5, 0.5); // ran(iseed);
 		const Real del_vx2 =
-			pars.amp * std::sqrt(cs2) * generator.drand(-0.5, 0.5); // ran(iseed);
+			vsip.amp * std::sqrt(cs2) * generator.drand(-0.5, 0.5); // ran(iseed);
 		const Real del_vx3 =
-			pars.amp * std::sqrt(cs2) * generator.drand(-0.5, 0.5); // ran(iseed);
+			vsip.amp * std::sqrt(cs2) * generator.drand(-0.5, 0.5); // ran(iseed);
 
 		v(0, gas::prim::density(0), k, j, i) = gdens;
 		v(0, gas::prim::velocity(0), k, j, i) = gvel1 + del_vx1;
 		v(0, gas::prim::velocity(1), k, j, i) = gvel2 + del_vx2;
 		v(0, gas::prim::velocity(2), k, j, i) = gvel3 + del_vx3;
-		v(0, gas::prim::sie(0), k, j, i) = eos_d.InternalEnergyFromDensityPressure(gdens, pres);
+		v(0, gas::prim::sie(0), k, j, i) = eos_d.InternalEnergyFromDensityPressure(gdens, gpres);
 
-	}
+	});
 
 	// Set up the dust initial conditions
 	/*if (do_dust) {
@@ -184,7 +184,7 @@ Real DensityProfile_Gas(struct VSIParams pgen, EOS eos,
 	Real Hgas = pgen.hg0 * std::pow(r/pgen.r0, (pgen.pslope + 3)/2);  
 	Real denmid = pgen.rho0 * std::pow(r / pgen.r0, pgen.dslope);
 	if (pgen.rexp > 0)
-		denmid*=exp(-r/rexp);
+		denmid*=exp(-r/pgen.rexp);
 	Real dentem = denmid * std::exp(-SQR(R / Hgas) * (R / r - 1.0));
 
 	return dentem;
@@ -218,7 +218,7 @@ void GasVelProfileCyl(struct VSIParams pgen, EOS eos,
 	// TODO: Check this
 	Real drhodr   = pgen.dslope/pgen.r0*std::pow(r/pgen.r0,-1.0)*rhog;
 	if (pgen.rexp > 0)
-		drhodr += -rhog/rexp;
+		drhodr += -rhog/pgen.rexp;
 
 	Real dcs2dr  = pgen.pslope/pgen.r0*p_over_r*std::pow(r/pgen.r0, pgen.pslope - 1);
 	Real dpdr    = drhodr*cs2 + rhog*dcs2dr;
