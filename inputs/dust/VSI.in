@@ -21,9 +21,7 @@ problem_id = VSI  # problem ID: basename of output filenames
 <parthenon/output1>
 variables = gas.prim.density,   &
             gas.prim.velocity,  &
-            gas.prim.pressure,  &
-            dust.prim.density,  &
-            dust.prim.velocity
+            gas.prim.pressure
 file_type = hdf5  # HDF5 data dump
 dt        = 6280  # time increment between outputs
 
@@ -35,42 +33,46 @@ ncycle_out = 1       # interval for stdout summary info
 
 <parthenon/mesh>
 
-nx1      = 1280      # Number of zones in X1-direction
-x1min    = 12.0      # minimum value of X1
-x1max    = 100.0     # maximum value of X1
+nx1      = 256       # Number of zones in X1-direction
+x1min    = 40.0      # minimum value of X1
+x1max    = 80.0      # maximum value of X1
 ix1_bc   = outflow   # Inner-X1 boundary condition flag
 ox1_bc   = outflow   # Outer-X1 boundary condition flag
 
 nx2      = 192       # Number of zones in X2-direction
-x2min    = 1.3207963267948966# minimum value of X2
-x2max    = 1.8207963267948966# maximum value of X2
-ix2_bc   = reflecting   # Inner-X2 boundary condition flag
-ox2_bc   = reflecting   # Outer-X2 boundary condition flag
+x2min    = 1.3207963 # minimum value of X2
+x2max    = 1.8207963 # maximum value of X2
+ix2_bc   = reflecting# Inner-X2 boundary condition flag
+ox2_bc   = reflecting# Outer-X2 boundary condition flag
 
-nx3      = 1         # Number of zones in X3-direction
-x3min    = 0.0       # minimum value of X3
-x3max    = 6.2831853071795862  # maximum value of X3
-ix3_bc   = periodic  # Inner-X3 boundary condition flag
-ox3_bc   = periodic  # Outer-X3 boundary condition flag
+nx3    = 1                   # Number of zones in X3-direction
+x3min  = -3.141592653589793  # minimum value of X3
+x3max  = 3.141592653589793   # maximum value of X3
+ix3_bc = periodic            # Inner-X3 boundary condition flag
+ox3_bc = periodic            # Outer-X3 boundary condition flag
 
 <parthenon/meshblock>
-nx1 = 1280  # Number of cells in each MeshBlock, X1-dir
-nx2 = 192   # Number of cells in each MeshBlock, X2-dir
-nx3 = 1     # Number of cells in each MeshBlock, X3-dir
+nx1 = 256  # Number of cells in each MeshBlock, X1-dir
+nx2 = 192  # Number of cells in each MeshBlock, X2-dir
+nx3 = 1    # Number of cells in each MeshBlock, X3-dir
 
 <physics>
 gas = true
 gravity = true
 cooling = true
+rotating_frame = true
 viscosity = false
 
 <gas>
 cfl = 0.6
-gamma = 1.01
+gamma = 1.4
 reconstruct = plm
 riemann = hllc
 dfloor = 1.0e-26
 siefloor = 1.0e-26
+
+<rotating_frame>
+omega = 1.0
 
 <cooling>
 type = beta
