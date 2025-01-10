@@ -115,7 +115,7 @@ inline void ProblemGenerator(MeshBlock *pmb, ParameterInput *pin) {
 
   auto &gas_pkg = pmb->packages.Get("gas");
   auto eos_d = gas_pkg->template Param<EOS>("eos_d");
-	auto vsi_params = artemis_pkg->Param<DiskParams>("vsi_params");
+	auto vsi_params = artemis_pkg->Param<VSI_Params>("vsi_params");
 
   auto &pco = pmb->coords;
   auto &vsip = vsi_params;
@@ -185,7 +185,7 @@ inline void ProblemGenerator(MeshBlock *pmb, ParameterInput *pin) {
 //! \fn Real DensityProfile_Gas
 //! \brief Computes density profile at spherical r and cylindrical R, z
 KOKKOS_INLINE_FUNCTION
-Real DensityProfile_Gas(VSIParams pgen, EOS eos, 
+Real DensityProfile_Gas(struct VSI_Params pgen, EOS eos, 
 								const Real r, const Real R, const Real z) {
   
 	Real Hgas = pgen.hg0 * std::pow(r/pgen.r0, (pgen.pslope + 3)/2);  
@@ -202,7 +202,7 @@ Real DensityProfile_Gas(VSIParams pgen, EOS eos,
 //! \fn Real Cs2Profile
 //! \brief Computes cs^2 profile at spherical r and cylindrical R, z
 KOKKOS_INLINE_FUNCTION
-Real Cs2Profile(VSIParams pgen, EOS eos, 
+Real Cs2Profile(struct VSI_Params pgen, EOS eos, 
 							const Real r, const Real R, const Real z) {
 	Real poverr = std::(pgen.hg0,2)*(pgen.gm/pgen.r0/pgen.r0/pgen.r0)*
 							  std::pow(r/pgen.r0, pgen.pslope);
@@ -213,7 +213,7 @@ Real Cs2Profile(VSIParams pgen, EOS eos,
 //! \fn Real Cs2Profile
 //! \brief Computes cs^2 profile at spherical r and cylindrical R, z
 KOKKOS_INLINE_FUNCTION
-void GasVelProfileCyl(VSIParams pgen, EOS eos, 
+void GasVelProfileCyl(struct VSI_Params pgen, EOS eos, 
 							const Real rhog, const Real cs2, 
 							const Real lambda0, const Real lambda1,
 							const Real r, const Real R, const Real z,
