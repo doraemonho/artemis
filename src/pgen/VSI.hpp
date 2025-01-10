@@ -43,7 +43,7 @@ using ArtemisUtils::VI;
 namespace VSI {
 
 // contains parameters for VSI problem
-struct VSIParams {
+struct VSI_Params {
 	Real gm;              // gravitational constant
 	Real gamma;           // adiabatic index
 	Real dslope, pslope;  // density and pressure slopes
@@ -256,5 +256,5 @@ Real Delta_gas_vphi(const Real vp, const Real visc, const Real lambda0, const Re
   return dv_g_phi;
 }
 
-}
+} // namespace VSI
 #endif // PGEN_VSI_HPP_
