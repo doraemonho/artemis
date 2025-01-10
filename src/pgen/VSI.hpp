@@ -64,22 +64,24 @@ inline void InitStratParams(MeshBlock *pmb, ParameterInput *pin) {
 
 	Params &params = pmb->packages.Get("artemis")->AllParams();
   auto artemis_pkg = pmb->packages.Get("artemis");
-  
+  auto &grav_pkg = pmb->packages.Get("gravity");
+  auto &gas_pkg = pmb->packages.Get("gas");
+	
 	if (!(params.hasKey("VSI_params"))) {
 		VSI_Params vsi_params;
 
 		// Get the gas related parameters from the input file
 		vsi_params.gm = grav_pkg->Param<Real>("gm");
-		vsi_params.r0 = pin->GetReal("problem", "r0", 1.0);
+		vsi_params.r0 = pin->GetReal("problem", "r0");
 
 		// Get the dust related parameters if dust is enabled
 		/*const bool do_dust = artemis_pkg->Param<bool>("do_dust");
 		if (do_dust) {
 
 		}*/
-
+		params.Add("VSI_params", vsi_params);
   }
-	params.Add("VSI_params", vsi_params);
+	
 }
 
 //----------------------------------------------------------------------------------------
@@ -93,8 +95,8 @@ inline void ProblemGenerator(MeshBlock *pmb, ParameterInput *pin) {
 	const bool do_gas = artemis_pkg->Param<bool>("do_gas");
 	// check the pgen requirements
 	PARTHENON_REQUIRE(do_gas, "VSI pgen requires gas=true!");
-	PARTHENON_REQUIRE(GEOM == Coordinates::spherical,
-									"problem = VSI only works for Spherical Coordinates!");
+	PARTHENON_REQUIRE( (GEOM == Coordinates::spherical3D) || (GEOM == Coordinates::spherical2D),
+								    	"problem = VSI only works for Spherical Coordinates!");
 
   // Packing
   auto &md = pmb->meshblock_data.Get();
@@ -115,7 +117,7 @@ inline void ProblemGenerator(MeshBlock *pmb, ParameterInput *pin) {
   auto eos_d = gas_pkg->template Param<EOS>("eos_d");
 
   auto &pco = pmb->coords;
-  auto &vsip = disk_params;
+  auto &vsip = vsi_params;
 
   Kokkos::Random_XorShift64_Pool<> random_pool(/*seed=*/pmb->gid);
 
@@ -128,8 +130,8 @@ inline void ProblemGenerator(MeshBlock *pmb, ParameterInput *pin) {
 		const auto &x_sph = coords.GetCellCenter();
 	  const auto &x_cyl = coords.ConvertCoordsToCyl(x_sph);
 
-		auto {r, theta, phi} = x_sph;
-		auto {R, a, z} = x_cyl;
+		auto [r, theta, phi] = x_sph;
+		auto [R, a, z] = x_cyl;
 
 		// gas variables
 		Real gdens = Null<Real>(), gpres = Null<Real>(), cs2 = Null<Real>();
