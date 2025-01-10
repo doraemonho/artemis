@@ -60,7 +60,7 @@ struct VSI_Params {
 //! \brief Extracts strat parameters from ParameterInput.
 //! NOTE(@pdmullen): In order for our user-defined BCs to be compatible with restarts,
 //! we must reset the StratParams struct upon initialization.
-inline void InitStratParams(MeshBlock *pmb, ParameterInput *pin) {
+inline void InitVSIParams(MeshBlock *pmb, ParameterInput *pin) {
 
 	Params &params = pmb->packages.Get("artemis")->AllParams();
   auto artemis_pkg = pmb->packages.Get("artemis");
