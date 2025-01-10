@@ -1,0 +1,92 @@
+# ========================================================================================
+#  (C) (or copyright) 2023-2024. Triad National Security, LLC. All rights reserved.
+#
+#  This program was produced under U.S. Government contract 89233218CNA000001 for Los
+#  Alamos National Laboratory (LANL), which is operated by Triad National Security, LLC
+#  for the U.S. Department of Energy/National Nuclear Security Administration. All rights
+#  in the program are reserved by Triad National Security, LLC, and the U.S. Department
+#  of Energy/National Nuclear Security Administration. The Government is granted for
+#  itself and others acting on its behalf a nonexclusive, paid-up, irrevocable worldwide
+#  license in this material to reproduce, prepare derivative works, distribute copies to
+#  the public, perform publicly and display publicly, and to permit others to do so.
+# ========================================================================================
+
+<artemis>
+problem = VSI  # name of the pgen
+coordinates = spherical
+
+<parthenon/job>
+problem_id = VSI  # problem ID: basename of output filenames
+
+<parthenon/output1>
+variables = gas.prim.density,   &
+            gas.prim.velocity,  &
+            gas.prim.pressure,  &
+            dust.prim.density,  &
+            dust.prim.velocity
+file_type = hdf5  # HDF5 data dump
+dt        = 6280  # time increment between outputs
+
+<parthenon/time>
+nlim       = -1      # cycle limit
+tlim       = 6.28e7  # time limit
+integrator = rk2     # time integration algorithm
+ncycle_out = 1       # interval for stdout summary info
+
+<parthenon/mesh>
+
+nx1      = 1280      # Number of zones in X1-direction
+x1min    = 12.0      # minimum value of X1
+x1max    = 100.0     # maximum value of X1
+ix1_bc   = outflow   # Inner-X1 boundary condition flag
+ox1_bc   = outflow   # Outer-X1 boundary condition flag
+
+nx2      = 192       # Number of zones in X2-direction
+x2min    = 1.3207963267948966# minimum value of X2
+x2max    = 1.8207963267948966# maximum value of X2
+ix2_bc   = reflecting   # Inner-X2 boundary condition flag
+ox2_bc   = reflecting   # Outer-X2 boundary condition flag
+
+nx3      = 1         # Number of zones in X3-direction
+x3min    = 0.0       # minimum value of X3
+x3max    = 6.2831853071795862  # maximum value of X3
+ix3_bc   = periodic  # Inner-X3 boundary condition flag
+ox3_bc   = periodic  # Outer-X3 boundary condition flag
+
+<parthenon/meshblock>
+nx1 = 32  # Number of cells in each MeshBlock, X1-dir
+nx2 = 32  # Number of cells in each MeshBlock, X2-dir
+nx3 = 1   # Number of cells in each MeshBlock, X3-dir
+
+<physics>
+gas = true
+gravity = true
+cooling = true
+viscosity = false
+
+<gas>
+cfl = 0.6
+gamma = 1.01
+reconstruct = plm
+riemann = hllc
+dfloor = 1.0e-26
+siefloor = 1.0e-26
+
+<cooling>
+type = beta
+tref = powerlaw
+beta0 = 0.0
+tcyl = .0025
+cyl_plaw = -1.0
+
+<gravity>
+gm = 1.0
+
+<gravity/point>
+
+<problem>
+r0 = 1.0
+dslope = -0.5
+pslope = -1.0
+hg0    = 1.0
+amp    = 1e-3

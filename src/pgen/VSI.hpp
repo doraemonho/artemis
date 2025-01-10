@@ -12,7 +12,7 @@
 //========================================================================================
 
 //! \file VSI.hpp
-//! \brief Initializes a vertical shear instability in spherical coordinates.
+//! \brief (KW HO) Initializes a vertical shear instability in spherical coordinates.
 #ifndef PGEN_VSI_HPP_
 #define PGEN_VSI_HPP_
 
@@ -47,11 +47,11 @@ struct VSI_Params {
 	Real gm;              // gravitational constant
 	Real gamma;           // adiabatic index
 	Real dslope, pslope;  // density and pressure slopes
-	Real rho0, r0, hg0;   // reference density, radius, and gas scale height
+	Real r0; 				   		// reference radius
+	Real rho0, r0, hg0;   // reference density, and gas scale height at r0
 	Real rexp;            // radial exponent for density profile
 	Real amp;             // amplitude of perturbation
 	Real dust_to_gas;     // dust to gas ratio
-
 };
 
 
@@ -73,11 +73,19 @@ inline void InitStratParams(MeshBlock *pmb, ParameterInput *pin) {
 		// Get the gas related parameters from the input file
 		vsi_params.gm = grav_pkg->Param<Real>("gm");
 		vsi_params.r0 = pin->GetReal("problem", "r0");
+		vsi_params.amp = pin->GetReal("problem", "amp");
+		vsi_params.rho0 = pin->GetReal("problem", "rho0");
+		vsi_params.hg0 = pin->GetReal("problem", "hg0");
+		vsi_params.rexp = pin->GetOrAddReal("problem", "rexp",0.0);
+
+		vsi_params.gamma = gas_pkg->Param<Real>("adiabatic_index");
+		vsi_params.dslope = pin->GetReal("problem", "dslope");
+		vsi_params.pslope = pin->GetReal("problem", "pslope");
 
 		// Get the dust related parameters if dust is enabled
 		/*const bool do_dust = artemis_pkg->Param<bool>("do_dust");
 		if (do_dust) {
-
+			vsi_params.dust_to_gas = pin->GetReal("problem", "dust_to_gas");
 		}*/
 		params.Add("VSI_params", vsi_params);
   }
@@ -239,7 +247,7 @@ void GasVelProfileCyl(struct VSI_Params pgen, EOS eos,
 	// Equation 11 from  Dipierro+18 MNRAS 479, 4187–4206 (2018)
 	Real delta_gas_vr   = (-lambda1*vp + (1 + lambda0)*visc)/
 	                      (std::pow(1 + lambda0,2.0) + lambda1*lambda1);
-												
+
 	// Equation 12 from  Dipierro+18 MNRAS 479, 4187–4206 (2018), have to add back the Keplerian velocity
 	Real delta_gas_vphi = 0.5*(vp*(1 + lambda0) + lambda1*visc)/
 	                      (std::pow(1 + lambda0,2.0) + lambda1*lambda1);
