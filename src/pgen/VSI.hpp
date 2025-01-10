@@ -115,6 +115,7 @@ inline void ProblemGenerator(MeshBlock *pmb, ParameterInput *pin) {
 
   auto &gas_pkg = pmb->packages.Get("gas");
   auto eos_d = gas_pkg->template Param<EOS>("eos_d");
+	auto vsi_params = artemis_pkg->Param<DiskParams>("vsi_params");
 
   auto &pco = pmb->coords;
   auto &vsip = vsi_params;
@@ -125,6 +126,8 @@ inline void ProblemGenerator(MeshBlock *pmb, ParameterInput *pin) {
 	pmb->par_for(
 		"VSI_gas", kb.s, kb.e, jb.s, jb.e, ib.s, ib.e,
 		KOKKOS_LAMBDA(const int k, const int j, const int i) {
+		// acquire the state of the random number generator engine
+		auto generator = random_pool.get_state();
 
 		geometry::Coords<GEOM> coords(pco, k, j, i);
 		const auto &x_sph = coords.GetCellCenter();
@@ -160,7 +163,9 @@ inline void ProblemGenerator(MeshBlock *pmb, ParameterInput *pin) {
 		v(0, gas::prim::velocity(1), k, j, i) = gvel2 + del_vx2;
 		v(0, gas::prim::velocity(2), k, j, i) = gvel3 + del_vx3;
 		v(0, gas::prim::sie(0), k, j, i) = eos_d.InternalEnergyFromDensityPressure(gdens, gpres);
-
+		
+		// do not forget to release the state of the engine
+		random_pool.free_state(generator);
 	});
 
 	// Set up the dust initial conditions
@@ -180,7 +185,7 @@ inline void ProblemGenerator(MeshBlock *pmb, ParameterInput *pin) {
 //! \fn Real DensityProfile_Gas
 //! \brief Computes density profile at spherical r and cylindrical R, z
 KOKKOS_INLINE_FUNCTION
-Real DensityProfile_Gas(struct VSIParams pgen, EOS eos, 
+Real DensityProfile_Gas(VSIParams pgen, EOS eos, 
 								const Real r, const Real R, const Real z) {
   
 	Real Hgas = pgen.hg0 * std::pow(r/pgen.r0, (pgen.pslope + 3)/2);  
@@ -197,7 +202,7 @@ Real DensityProfile_Gas(struct VSIParams pgen, EOS eos,
 //! \fn Real Cs2Profile
 //! \brief Computes cs^2 profile at spherical r and cylindrical R, z
 KOKKOS_INLINE_FUNCTION
-Real Cs2Profile(struct VSIParams pgen, EOS eos, 
+Real Cs2Profile(VSIParams pgen, EOS eos, 
 							const Real r, const Real R, const Real z) {
 	Real poverr = std::(pgen.hg0,2)*(pgen.gm/pgen.r0/pgen.r0/pgen.r0)*
 							  std::pow(r/pgen.r0, pgen.pslope);
@@ -208,7 +213,7 @@ Real Cs2Profile(struct VSIParams pgen, EOS eos,
 //! \fn Real Cs2Profile
 //! \brief Computes cs^2 profile at spherical r and cylindrical R, z
 KOKKOS_INLINE_FUNCTION
-void GasVelProfileCyl(struct VSIParams pgen, EOS eos, 
+void GasVelProfileCyl(VSIParams pgen, EOS eos, 
 							const Real rhog, const Real cs2, 
 							const Real lambda0, const Real lambda1,
 							const Real r, const Real R, const Real z,
