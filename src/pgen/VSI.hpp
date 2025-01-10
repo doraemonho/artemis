@@ -48,7 +48,7 @@ struct VSI_Params {
 	Real gamma;           // adiabatic index
 	Real dslope, pslope;  // density and pressure slopes
 	Real r0; 				   		// reference radius
-	Real rho0, r0, hg0;   // reference density, and gas scale height at r0
+	Real rho0, hg0;       // reference density, and gas scale height at r0
 	Real rexp;            // radial exponent for density profile
 	Real amp;             // amplitude of perturbation
 	Real dust_to_gas;     // dust to gas ratio
