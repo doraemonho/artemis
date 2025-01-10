@@ -90,3 +90,4 @@ dslope = -2.2
 pslope = -0.6
 hg0    = 0.0408
 amp    = 1e-3
+rho0   = 1.0

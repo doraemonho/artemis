@@ -87,7 +87,7 @@ inline void InitVSIParams(MeshBlock *pmb, ParameterInput *pin) {
 		if (do_dust) {
 			vsi_params.dust_to_gas = pin->GetReal("problem", "dust_to_gas");
 		}*/
-		params.Add("VSI_params", vsi_params);
+		params.Add("vsi_params", vsi_params);
   }
 	
 }
