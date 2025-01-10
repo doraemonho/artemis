@@ -139,10 +139,12 @@ inline void ProblemGenerator(MeshBlock *pmb, ParameterInput *pin) {
 		// gas variables
 		Real gdens = Null<Real>(), gpres = Null<Real>(), cs2 = Null<Real>();
 		Real gvel1 = Null<Real>(), gvel2 = Null<Real>(), gvel3 = Null<Real>();
-		
+		Real gtemp = Null<Real>();
+
 		cs2 = Cs2Profile(vsip, eos_d, r, R, z);
 		gpres = gdens*cs2/vsip.gamma;
 		gdens = DensityProfile_Gas(vsip, eos_d, r, R, z);
+		gtemp = gpres/gdens/(vsip.gamma - 1.0);
 
 		Real lambda0 = 0.0, lambda1 = 0.0;
 		GasVelProfileCyl(vsip, eos_d, 
@@ -162,7 +164,7 @@ inline void ProblemGenerator(MeshBlock *pmb, ParameterInput *pin) {
 		v(0, gas::prim::velocity(0), k, j, i) = gvel1 + del_vx1;
 		v(0, gas::prim::velocity(1), k, j, i) = gvel2 + del_vx2;
 		v(0, gas::prim::velocity(2), k, j, i) = gvel3 + del_vx3;
-		v(0, gas::prim::sie(0), k, j, i) = eos_d.InternalEnergyFromDensityPressure(gdens, gpres);
+		v(0, gas::prim::sie(0), k, j, i) = eos_d.InternalEnergyFromDensityTemperature(gdens, gtemp);
 		
 		// do not forget to release the state of the engine
 		random_pool.free_state(generator);
@@ -204,7 +206,7 @@ Real DensityProfile_Gas(struct VSI_Params pgen, EOS eos,
 KOKKOS_INLINE_FUNCTION
 Real Cs2Profile(struct VSI_Params pgen, EOS eos, 
 							const Real r, const Real R, const Real z) {
-	Real poverr = std::(pgen.hg0,2)*(pgen.gm/pgen.r0/pgen.r0/pgen.r0)*
+	Real poverr = std::pow(pgen.hg0,2)*(pgen.gm/pgen.r0/pgen.r0/pgen.r0)*
 							  std::pow(r/pgen.r0, pgen.pslope);
 	return poverr;
 }
@@ -214,14 +216,14 @@ Real Cs2Profile(struct VSI_Params pgen, EOS eos,
 //! \brief Computes cs^2 profile at spherical r and cylindrical R, z
 KOKKOS_INLINE_FUNCTION
 void GasVelProfileCyl(struct VSI_Params pgen, EOS eos, 
-							const Real rhog, const Real cs2, 
-							const Real lambda0, const Real lambda1,
-							const Real r, const Real R, const Real z,
-							Real &v1, Real &v2, Real &v3) {
+											const Real rhog, const Real cs2, 
+											const Real lambda0, const Real lambda1,
+											const Real r, const Real R, const Real z,
+											Real &v1, Real &v2, Real &v3) {
   // P = rho*cs^2 -> dP/dr = d(rho)/dr*cs^2 + rho*dcs2/dr
   // cs2 = p_over_r*std::pow(rad/r0, pslope);
   // rho(R) ~ rho0*(R/r0)^dslope*exp(-z^2/(2*H^2))
-	Real p_over_r = std::(pgen.hg0,2)*(pgen.gm/pgen.r0/pgen.r0/pgen.r0);
+	Real p_over_r = std::pow(pgen.hg0,2)*(pgen.gm/pgen.r0/pgen.r0/pgen.r0);
 	// TODO: Check this
 	Real drhodr   = pgen.dslope/pgen.r0*std::pow(r/pgen.r0,-1.0)*rhog;
 	if (pgen.rexp > 0)
@@ -232,35 +234,21 @@ void GasVelProfileCyl(struct VSI_Params pgen, EOS eos,
 	Real omega_k = std::sqrt(pgen.gm/(r*r*r));
 	Real vk      = omega_k*r;
 	Real vp      = 1/rhog/omega_k*dpdr;
-	Real visc    = 0.0; // it is zeros now.
+	Real visc    = 0.0; // (TODO):it is zeros now.
 
-	Real delta_gas_vr   = Delta_gas_vr(vp, visc, lambda0, lambda1);
-	Real delta_gas_vphi = Delta_gas_vphi(vp, visc, lambda0, lambda1);
+	// Equation 11 from  Dipierro+18 MNRAS 479, 4187–4206 (2018)
+	Real delta_gas_vr   = (-lambda1*vp + (1 + lambda0)*visc)/
+	                      (std::pow(1 + lambda0,2.0) + lambda1*lambda1);
+												
+	// Equation 12 from  Dipierro+18 MNRAS 479, 4187–4206 (2018), have to add back the Keplerian velocity
+	Real delta_gas_vphi = 0.5*(vp*(1 + lambda0) + lambda1*visc)/
+	                      (std::pow(1 + lambda0,2.0) + lambda1*lambda1);
 
 	v1 = delta_gas_vr;
 	v2 = 0.0;
 	v3 = delta_gas_vphi + vk;
 
 	return ;
-}
-
-//----------------------------------------------------------------------------------------
-//! \fn Real Delta_gas_vr
-//! \brief V_r Equation 11 from  Dipierro+18 MNRAS 479, 4187–4206 (2018)
-KOKKOS_INLINE_FUNCTION
-Real Delta_gas_vr(const Real vp, const Real visc, const Real lambda0, const Real lambda1) {
-  Real dv_g_r = (-lambda1*vp + (1 + lambda0)*visc)/(std::pow(1 + lambda0,2.0) + lambda1*lambda1);
-  return dv_g_r;
-}
-
-//----------------------------------------------------------------------------------------
-//! \fn Real Delta_gas_vphi
-//! \brief V_phi  Equation 12 from  Dipierro+18 MNRAS 479, 4187–4206 (2018)
-//!        have to add back the Keplerian velocity
-KOKKOS_INLINE_FUNCTION
-Real Delta_gas_vphi(const Real vp, const Real visc, const Real lambda0, const Real lambda1){
-  Real dv_g_phi = 0.5*(vp*(1 + lambda0) + lambda1*visc)/(std::pow(1 + lambda0,2.0) + lambda1*lambda1);
-  return dv_g_phi;
 }
 
 } // namespace VSI
