@@ -18,6 +18,7 @@
 #include <utils/error_checking.hpp>
 
 // Artemis includes
+#include "VSI.hpp"
 #include "SI_strat.hpp"
 #include "advection.hpp"
 #include "blast.hpp"
@@ -67,6 +68,8 @@ void ProblemGenerator(MeshBlock *pmb, ParameterInput *pin) {
     dust_collision::ProblemGenerator<T>(pmb, pin);
   } else if (name == "dust_coagulation") {
     dust_coagulation::ProblemGenerator<T>(pmb, pin);
+  } else if (name == "VSI") {
+    VSI::ProblemGenerator<T>(pmb, pin);
   } else {
     PARTHENON_FAIL("Invalid problem name!");
   }
