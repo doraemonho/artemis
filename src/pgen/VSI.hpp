@@ -219,7 +219,7 @@ Real DensityProfile_Gas(struct VSI_Params pgen, EOS eos,
 	Real denmid = pgen.rho0 * std::pow(r / pgen.r0, pgen.dslope);
 	if (pgen.rexp > 0)
 		denmid*=exp(-r/pgen.rexp);
-	Real  r_sph = std::sqrt(R * R + z * z);
+	Real  r_sph = std::sqrt(r * r + z * z);
 	Real dentem = denmid * std::exp(-SQR(r_sph / Hgas) * (r_sph / r - 1.0));
 
 	return dentem;
