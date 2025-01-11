@@ -152,7 +152,7 @@ inline void ProblemGenerator(MeshBlock *pmb, ParameterInput *pin) {
 
 		geometry::Coords<GEOM> coords(pco, k, j, i);
 		const auto &x_sph = coords.GetCellCenter();
-	  const auto &x_cyl = coords.ConvertCoordsToCyl(x_sph);
+	  //const auto &x_cyl = coords.ConvertCoordsToCyl(x_sph);
 
 		auto [r_sph, t_sph, p_sph] = x_sph;
 		auto [r_cyl, p_cyl, z_cyl] = x_cyl;
