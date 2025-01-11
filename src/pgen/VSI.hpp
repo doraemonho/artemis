@@ -154,17 +154,18 @@ inline void ProblemGenerator(MeshBlock *pmb, ParameterInput *pin) {
 		const auto &x_sph = coords.GetCellCenter();
 	  const auto &x_cyl = coords.ConvertCoordsToCyl(x_sph);
 
-		auto [r, theta, phi] = x_sph;
-		auto R = r*std::sin(theta);
-		auto z = r*std::cos(theta);
+		auto [r_sph, t_sph, p_sph] = x_sph;
+		auto [r_cyl, p_cyl, z_cyl] = x_cyl;
+		//auto r_cyl = r*std::sin(theta);
+		//auto z_cyl = r*std::cos(theta);
 
 		// gas variables
 		Real gdens = Null<Real>(), gpres = Null<Real>(), cs2 = Null<Real>();
 		Real gvel1 = Null<Real>(), gvel2 = Null<Real>(), gvel3 = Null<Real>();
 		Real gtemp = Null<Real>();
 
-		cs2 = Cs2Profile(vsip, eos_d, r, R, z);
-		gdens = DensityProfile_Gas(vsip, eos_d, r, R, z);
+		cs2 = Cs2Profile(vsip, eos_d, r_cyl, z_cyl);
+		gdens = DensityProfile_Gas(vsip, eos_d, r_cyl, z_cyl);
 		gpres = gdens*cs2/vsip.gamma;
 		gtemp = gpres/gdens/(vsip.gamma - 1.0);
 
@@ -172,7 +173,7 @@ inline void ProblemGenerator(MeshBlock *pmb, ParameterInput *pin) {
 		GasVelProfileCyl(vsip, eos_d, 
 								    	gdens, cs2, 
 								    	lambda0, lambda1,
-								    	r, R, z,
+								    	r_cyl, z_cyl,
 								    	gvel1, gvel2, gvel3);
 
 		const Real del_vx1 =
@@ -207,28 +208,31 @@ inline void ProblemGenerator(MeshBlock *pmb, ParameterInput *pin) {
 
 //----------------------------------------------------------------------------------------
 //! \fn Real DensityProfile_Gas
-//! \brief Computes density profile at spherical r and cylindrical R, z
+//! \brief Computes density profile at spherical r, z.
+//         Modified from A&A666, A98 (2022).
+//         rho(r,z) = rho0*(r/r0)^P*exp(-r^2/H^2*(r/R - 1))
 KOKKOS_INLINE_FUNCTION
 Real DensityProfile_Gas(struct VSI_Params pgen, EOS eos, 
-								const Real r, const Real R, const Real z) {
+								        const Real r, const Real z) {
   
 	Real Hgas = pgen.hg0 * std::pow(r / pgen.r0, (pgen.pslope + 3)/2);  
 	Real denmid = pgen.rho0 * std::pow(r / pgen.r0, pgen.dslope);
 	if (pgen.rexp > 0)
 		denmid*=exp(-r/pgen.rexp);
-	Real     rr = std::sqrt(R * R + z * z);
-	Real dentem = denmid * std::exp(-SQR(rr / Hgas) * (rr / r - 1.0));
+	Real  r_sph = std::sqrt(R * R + z * z);
+	Real dentem = denmid * std::exp(-SQR(r_sph / Hgas) * (r_sph / r - 1.0));
 
 	return dentem;
 }
 
+
 // funciton to compute the cs^2
 //----------------------------------------------------------------------------------------
 //! \fn Real Cs2Profile
-//! \brief Computes cs^2 profile at spherical r and cylindrical R, z
+//! \brief Computes cs^2 profile at cylindrical r, z
 KOKKOS_INLINE_FUNCTION
 Real Cs2Profile(struct VSI_Params pgen, EOS eos, 
-							const Real r, const Real R, const Real z) {
+						    const Real r, const Real z) {
 	Real poverr = std::pow(pgen.hg0,2)*(pgen.gm/pgen.r0/pgen.r0/pgen.r0)*
 							  std::pow(r/pgen.r0, pgen.pslope);
 	return poverr;
@@ -236,12 +240,12 @@ Real Cs2Profile(struct VSI_Params pgen, EOS eos,
 
 //----------------------------------------------------------------------------------------
 //! \fn Real Cs2Profile
-//! \brief Computes cs^2 profile at spherical r and cylindrical R, z
+//! \brief Computes cs^2 profile at cylindrical R, z
 KOKKOS_INLINE_FUNCTION
 void GasVelProfileCyl(struct VSI_Params pgen, EOS eos, 
 											const Real rhog, const Real cs2, 
 											const Real lambda0, const Real lambda1,
-											const Real r, const Real R, const Real z,
+											const Real r, const Real z,
 											Real &v1, Real &v2, Real &v3) {
   // P = rho*cs^2 -> dP/dr = d(rho)/dr*cs^2 + rho*dcs2/dr
   // cs2 = p_over_r*std::pow(rad/r0, pslope);
