@@ -156,8 +156,8 @@ inline void ProblemGenerator(MeshBlock *pmb, ParameterInput *pin) {
 
 		auto [r_sph, t_sph, p_sph] = x_sph;
 		auto [r_cyl, p_cyl, z_cyl] = x_cyl;
-		//auto r_cyl = r*std::sin(theta);
-		//auto z_cyl = r*std::cos(theta);
+		auto r_cyl = r*std::sin(theta);
+		auto z_cyl = r*std::cos(theta);
 
 		// gas variables
 		Real gdens = Null<Real>(), gpres = Null<Real>(), cs2 = Null<Real>();
