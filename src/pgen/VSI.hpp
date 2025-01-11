@@ -46,7 +46,7 @@ namespace VSI {
 struct VSI_Params {
 	Real gm;              // gravitational constant
 	Real gamma;           // adiabatic index
-	Real dslope, pslope;  // density and pressure slopes
+	Real dslope, pslope;  // density and cs2 slopes
 	Real r0; 				   		// reference radius
 	Real rho0, hg0;       // reference density, and gas scale height at r0
 	Real rexp;            // radial exponent for density profile
@@ -89,19 +89,19 @@ inline void InitVSIParams(MeshBlock *pmb, ParameterInput *pin) {
 		}*/
 		params.Add("vsi_params", vsi_params);
 		// print out all the parameters
-		if (parthenon::Globals::my_rank == 0) {
-			std::cout << "VSI Parameters:" << std::endl;
-			std::cout << "gm: " << vsi_params.gm << std::endl;
-			std::cout << "r0: " << vsi_params.r0 << std::endl;
-			std::cout << "rho0: " << vsi_params.rho0 << std::endl;
-			std::cout << "hg0: " << vsi_params.hg0 << std::endl;
-			std::cout << "rexp: " << vsi_params.rexp << std::endl;
-			std::cout << "amp: " << vsi_params.amp << std::endl;
-			std::cout << "gamma: " << vsi_params.gamma << std::endl;
-			std::cout << "dslope: " << vsi_params.dslope << std::endl;
-			std::cout << "pslope: " << vsi_params.pslope << std::endl;
-			
-		}
+		//if (parthenon::Globals::my_rank == 0) {
+		//	std::cout << "VSI Parameters:" << std::endl;
+		//	std::cout << "gm: " << vsi_params.gm << std::endl;
+		//	std::cout << "r0: " << vsi_params.r0 << std::endl;
+		//	std::cout << "rho0: " << vsi_params.rho0 << std::endl;
+		//	std::cout << "hg0: " << vsi_params.hg0 << std::endl;
+		//	std::cout << "rexp: " << vsi_params.rexp << std::endl;
+		//	std::cout << "amp: " << vsi_params.amp << std::endl;
+		//	std::cout << "gamma: " << vsi_params.gamma << std::endl;
+		//	std::cout << "dslope: " << vsi_params.dslope << std::endl;
+		//	std::cout << "pslope: " << vsi_params.pslope << std::endl;
+		//	
+		//}
   }
 }
 
@@ -155,7 +155,8 @@ inline void ProblemGenerator(MeshBlock *pmb, ParameterInput *pin) {
 	  const auto &x_cyl = coords.ConvertCoordsToCyl(x_sph);
 
 		auto [r, theta, phi] = x_sph;
-		auto [R, a, z] = x_cyl;
+		auto R = r*std::sin(theta);
+		auto z = r*std::cos(theta);
 
 		// gas variables
 		Real gdens = Null<Real>(), gpres = Null<Real>(), cs2 = Null<Real>();
