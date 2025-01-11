@@ -212,11 +212,12 @@ KOKKOS_INLINE_FUNCTION
 Real DensityProfile_Gas(struct VSI_Params pgen, EOS eos, 
 								const Real r, const Real R, const Real z) {
   
-	Real Hgas = pgen.hg0 * std::pow(r/pgen.r0, (pgen.pslope + 3)/2);  
+	Real Hgas = pgen.hg0 * std::pow(r / pgen.r0, (pgen.pslope + 3)/2);  
 	Real denmid = pgen.rho0 * std::pow(r / pgen.r0, pgen.dslope);
 	if (pgen.rexp > 0)
 		denmid*=exp(-r/pgen.rexp);
-	Real dentem = denmid * std::exp(-SQR(R / Hgas) * (R / r - 1.0));
+	Real     rr = std::sqrt(R * R + z * z);
+	Real dentem = denmid * std::exp(-SQR(rr / Hgas) * (rr / r - 1.0));
 
 	return dentem;
 }
