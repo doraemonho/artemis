@@ -225,7 +225,6 @@ Real DensityProfile_Gas(struct VSI_Params pgen, EOS eos,
 	return dentem;
 }
 
-
 // funciton to compute the cs^2
 //----------------------------------------------------------------------------------------
 //! \fn Real Cs2Profile
@@ -258,8 +257,9 @@ void GasVelProfileCyl(struct VSI_Params pgen, EOS eos,
 
 	Real dcs2dr  = pgen.pslope/pgen.r0*p_over_r*std::pow(r/pgen.r0, pgen.pslope - 1);
 	Real dpdr    = drhodr*cs2 + rhog*dcs2dr;
-	Real omega_k = std::sqrt(pgen.gm/(r*r*r));
-	Real vk      = omega_k*r;
+	Real r_sph   = std::sqrt(r * r + z * z);
+	Real omega_k = std::sqrt(pgen.gm/(r_sph*r_sph*r_sph));
+	Real vk      = omega_k*r_sph;
 	Real vp      = 1/rhog/omega_k*dpdr;
 	Real visc    = 0.0; // (TODO):it is zeros now.
 
